@@ -1,0 +1,10 @@
+/src-tauri/target/
+/src-tauri/gen/
+.DS_Store
+*.dmg
+*.app
+*.app.tar.gz
+*.sig
+*.key
+*.pem
+.env*

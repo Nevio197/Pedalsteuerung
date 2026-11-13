@@ -1,0 +1,10 @@
+name: Idee vorschlagen
+description: Schlag eine Verbesserung für Pedalsteuerung vor.
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Was soll die App können?
+      description: Beschreibe die Idee und wann du sie nutzen würdest.
+    validations:
+      required: true

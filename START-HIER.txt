@@ -1,0 +1,67 @@
+PEDALSTEUERUNG 2
+Philips ACC2320 · Apple Silicon · macOS 13 oder neuer
+
+Erster Start
+
+1. Die DMG von GitHub öffnen. Pedalsteuerung 2 in „Programme“ ziehen.
+   Danach die App aus „Programme“ öffnen.
+2. Unten links sollten „Philips-Pedal verbunden“ und „Exklusiver Zugriff“ stehen.
+3. In der Vorschau links, Mitte und rechts prüfen. Falls eine Position abweicht,
+   unter Einstellungen → Tasten kalibrieren jede Position drücken und loslassen.
+4. Eine Geste in der Tastenbelegung anklicken, eine Aktion auswählen und speichern.
+5. „Aktionen fortsetzen“ wählen, sobald du die Belegung ausprobiert hast.
+
+Exklusivmodus beim Spielen
+
+Aktiviere den Modus vor dem Start von Steam und dem Spiel. Programme, die das
+Pedal schon geöffnet haben, können weiterhin seine Eingaben empfangen. Beende
+und starte solche Programme nach dem Wechsel in den Exklusivmodus erneut.
+Das rote Fensterkreuz blendet Pedalsteuerung aus. Der Zugriff bleibt erhalten.
+Über das Menüleistensymbol → Beenden wird das Pedal wieder freigegeben.
+Pause und Vorschau halten das Pedal reserviert und schalten Aktionen aus.
+
+Bleibt eine Taste nach kurzem Drücken aktiv, prüfe den kleinen
+Wiedergabeschalter T/N an der Unterseite des Philips-Pedals. Für Tippen,
+Halten und Doppeltippen ist N (Neutral) die passende Stellung.
+
+Profile, Gesten und Makros
+
+Lege unter Profile deine Belegungen an. Wechsle in die gewünschte Ziel-App
+und zurück. Mit „Zuletzt aktive App hinzufügen“ ordnest du sie dem Profil zu.
+Über die Profilauswahl kannst du ein Profil fest auswählen oder auf Automatisch
+wechseln. Die Schwellwerte für Halten und Doppeltipp stehen in Einstellungen.
+Ist nur Tippen belegt, löst die App beim Drücken aus. Mit Halten oder Doppeltipp
+wartet sie auf die passende Geste. Im Makroeditor kannst du Aktionen und
+Wartezeiten hinzufügen und umsortieren.
+
+Discord
+
+Lege in der Discord-Desktop-App einen Hotkey für „Mikrofon ein-/ausschalten“
+fest. Drücke beim Aufzeichnen das Tastenkürzel auf der Tastatur, beispielsweise
+Ctrl+Shift+F9. Verwende dasselbe Kürzel in Pedalsteuerung 2. Für Push-to-Talk
+belegst du „Halten“ und verwendest das dafür in Discord eingerichtete Kürzel.
+Verlass die Hotkey-Seite und lass Discord geöffnet. Erlaube bei Bedarf den
+Tastaturzugriff in Pedalsteuerung unter Einstellungen → Bedienungshilfen.
+Ein Spiel kann Tastenkürzel sehen, die als Tastaturereignisse gesendet werden.
+
+OBS und Elgato
+
+Aktiviere für OBS unter Werkzeuge die WebSocket-Verbindung und trage Port und
+Kennwort in der Aktion ein. Das Kennwort wird lokal mit der Belegung gespeichert.
+Für Elgato legst du freigegebene Aktionen auf das MCP Deck, aktivierst die
+lokale HTTP-Verbindung und wählst in der Pedalaktion „Aktionen laden“.
+Der eingebaute HTTP-Server in Stream Deck 8 verwendet standardmäßig Port 29001.
+Bei Stream Deck 7.x ist ein separater Elgato-MCP-Server nötig. Dessen HTTP-Dienst
+kann im Netzwerk erreichbar sein. Pedalsteuerung verbindet sich mit 127.0.0.1.
+OBS und Stream-Deck-Aktionen senden selbst kein Tastaturkürzel an ein Spiel.
+
+Discord: https://support.discord.com/hc/en-us/articles/217083547-How-do-I-add-different-Keybinds
+OBS: https://obsproject.com/kb/remote-control-guide
+Elgato: https://www.elgato.com/de/de/explorer/products/stream-deck/sd-mcp-setup/
+
+Updates und Feedback
+
+Unter Einstellungen kannst du jetzt nach Updates suchen oder auf den nächsten
+automatischen Check warten. Die Installation und der Neustart erfolgen nach
+deinem Klick. GitHub Issues öffnet sich für Fehler und Ideen im Browser.
+Made by Nevio.

@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Pedalsteuerung</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+        <div><strong>Pedalsteuerung</strong><small>Made by Nevio</small></div>
+      </div>
+      <nav aria-label="Bereiche">
+        <button type="button" data-view="pedal" aria-current="page"><span class="nav-icon">◫</span> Fußpedal</button>
+        <button type="button" data-view="profiles"><span class="nav-icon">▤</span> Profile</button>
+        <button type="button" data-view="settings"><span class="nav-icon">⚙</span> Einstellungen</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div id="connection" class="connection" aria-live="polite"><span class="dot"></span><div><strong>Verbindung wird geprüft</strong><small id="connection-mode">Philips USB-Pedal</small></div></div>
+        <button id="pause" class="button quiet wide" type="button" aria-pressed="false">Aktionen pausieren</button>
+      </div>
+    </aside>
+    <main>
+      <section id="view-pedal" class="view">
+        <header class="page-head">
+          <div><h1>Fußpedal</h1><p>Belegung und Live-Anzeige für das Philips ACC2320.</p></div>
+          <label class="profile-select" for="active-profile">Aktives Profil <select id="active-profile"></select></label>
+        </header>
+        <section class="panel device-panel" aria-label="Live-Ansicht der Pedaltasten">
+          <div class="panel-head"><div><h2>Live-Ansicht</h2><p id="frontmost">Profilwechsel nach aktiver App</p></div><button type="button" id="preview" class="button quiet" aria-pressed="false">Vorschau</button></div>
+          <div class="pedal-stage">
+            <div class="pedal-base" aria-hidden="true">
+              <div class="pedal-side"></div>
+              <div class="pedal-top">
+                <div data-pedal="0" class="physical"><span></span><i></i></div>
+                <div data-pedal="1" class="physical center"><span></span><i></i></div>
+                <div data-pedal="2" class="physical"><span></span><i></i></div>
+              </div>
+            </div>
+            <div class="pedal-labels" aria-label="Tastenzustand"><span data-pedal-label="0">Links</span><span data-pedal-label="1">Mitte</span><span data-pedal-label="2">Rechts</span></div>
+          </div>
+          <p id="live-note" class="live-note">Drücke eine Taste, um ihren Status zu sehen.</p>
+        </section>
+        <section class="assignments" aria-labelledby="assignment-heading">
+          <div class="section-head"><h2 id="assignment-heading">Tastenbelegung</h2><span id="editing-profile"></span></div>
+          <div id="assignment-grid" class="assignment-grid"></div>
+        </section>
+        <section class="panel activity" aria-live="polite"><div class="activity-icon" aria-hidden="true">↗</div><div><h2>Letzte Aktion</h2><p id="activity">Noch keine Aktion ausgelöst.</p></div><span id="activity-badge" class="badge" hidden></span></section>
+      </section>
+      <section id="view-profiles" class="view" hidden>
+        <header class="page-head"><div><h1>Profile</h1><p>Wechsle Belegungen automatisch mit der aktiven App oder wähle ein festes Profil.</p></div><button class="button primary" type="button" id="new-profile">Profil hinzufügen</button></header>
+        <div id="profile-list" class="profile-list"></div>
+      </section>
+      <section id="view-settings" class="view" hidden>
+        <header class="page-head"><div><h1>Einstellungen</h1><p>Pedalzugriff, Erkennung und Verbindungen.</p></div></header>
+        <div class="settings-grid">
+          <section class="panel settings-panel">
+            <h2>Pedalzugriff</h2>
+            <p>Aktiviere Exklusiv, bevor du Steam oder ein Spiel öffnest. Programme, die das Pedal bereits geöffnet haben, können weiter Eingaben erhalten. Starte sie bei Bedarf neu.</p>
+            <label for="access-mode">Zugriffsmodus</label>
+            <select id="access-mode"><option value="exclusive">Exklusiv</option><option value="shared">Geteilt</option></select>
+            <button id="calibrate" class="button quiet" type="button">Tasten kalibrieren</button>
+            <p>Im Modus Geteilt können andere Programme das Pedal lesen. Spiele können gesendete Tastenkürzel separat empfangen.</p>
+            <p id="mapping-description" class="setting-detail"></p>
+          </section>
+          <section class="panel settings-panel">
+            <h2>Tastenerkennung</h2>
+            <p>Stelle ein, ab wann Halten zählt und wie schnell zwei Drucke aufeinanderfolgen müssen.</p>
+            <div class="timing-fields">
+              <label for="hold-ms">Halten ab <span><input id="hold-ms" type="number" min="200" max="2000" step="10"> ms</span></label>
+              <label for="double-ms">Doppeltipp bis <span><input id="double-ms" type="number" min="120" max="800" step="10"> ms</span></label>
+            </div>
+            <button id="save-timings" class="button quiet" type="button">Zeiten speichern</button>
+          </section>
+          <section class="panel settings-panel">
+            <h2>Discord und Tastenkürzel</h2>
+            <p>Erlaube unter macOS den Zugriff auf Bedienungshilfen. Stelle in Discord dasselbe Kürzel ein und verlasse die Kürzel-Seite vor dem Test.</p>
+            <span id="keyboard-permission" class="setting-detail">Tastaturzugriff wird geprüft.</span>
+            <button id="grant-permission" class="button quiet" type="button">Tastaturzugriff erlauben</button>
+          </section>
+          <section class="panel settings-panel">
+            <h2>OBS und Stream Deck</h2>
+            <p>Für OBS aktiviere den WebSocket-Server und verwende dessen Port und Kennwort.</p>
+            <p>Für Stream Deck lege Aktionen auf das MCP Deck. Der integrierte HTTP-Server verwendet standardmäßig Port 29001, der separate Elgato MCP Server Port 9090. OBS und Stream Deck senden keine Tastenkürzel an das aktive Fenster.</p>
+          </section>
+          <section class="panel settings-panel release-panel" aria-labelledby="update-title">
+            <div class="release-heading">
+              <div><h2 id="update-title">Über Pedalsteuerung</h2><p>Made by Nevio</p></div>
+              <button type="button" id="feedback" class="button quiet">Fehler melden oder Idee teilen ↗</button>
+            </div>
+            <div class="update-info" aria-live="polite">
+              <span id="installed-version"></span>
+              <span id="latest-version" hidden></span>
+              <p id="update-status">Aktualisierungsstatus wird geladen.</p>
+              <time id="update-checked" class="setting-detail" hidden></time>
+            </div>
+            <details id="update-notes" hidden><summary>Änderungen in dieser Version</summary><p></p></details>
+            <div class="update-controls">
+              <button type="button" id="check-update" class="button quiet">Nach Updates suchen</button>
+              <button type="button" id="install-update" class="button primary" hidden>Installieren und neu starten</button>
+            </div>
+          </section>
+        </div>
+      </section>
+      <div id="notification" class="notification" aria-live="polite" hidden></div>
+    </main>
+  </div>
+  <dialog id="edit-dialog">
+    <form id="dialog-form">
+      <header class="dialog-head"><div><span id="dialog-context"></span><h2 id="dialog-title"></h2></div><button id="close-dialog" class="button icon quiet" type="button" aria-label="Schließen">×</button></header>
+      <div id="dialog-body"></div>
+      <p id="dialog-message" class="dialog-message" aria-live="polite" hidden></p>
+      <footer id="dialog-footer"></footer>
+    </form>
+  </dialog>
+  <dialog id="easter-dialog" aria-labelledby="easter-title">
+    <header class="dialog-head">
+      <div><span class="easter-speed" aria-hidden="true">88 MPH</span><h2 id="easter-title">Nevio McFly</h2></div>
+      <button id="close-easter" class="button icon quiet" type="button" aria-label="Video schließen">×</button>
+    </header>
+    <video id="easter-video" controls playsinline preload="none" aria-label="Nevio McFly"></video>
+    <p id="easter-message" class="easter-message" aria-live="polite" hidden></p>
+  </dialog>
+</body>
+</html>
