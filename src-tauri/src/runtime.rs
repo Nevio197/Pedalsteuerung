@@ -4,12 +4,13 @@ use crate::hardware::{AccessMode, HardwareEvent, HardwareReader};
 use crate::model::{self, Action, ActionPhase, Config};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender, SyncSender, TrySendError};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
+use tokio::sync::oneshot;
 
 const TICK: Duration = Duration::from_millis(10);
 const ACTION_QUEUE_LIMIT: usize = 8;
@@ -40,10 +41,14 @@ pub struct AppSnapshot {
     pub startup_message: Option<String>,
 }
 
-type Reply = Sender<Result<AppSnapshot, String>>;
+type Reply = oneshot::Sender<Result<AppSnapshot, String>>;
+
+struct PublishedState {
+    snapshot: AppSnapshot,
+    event_queued: bool,
+}
 
 pub enum Message {
-    State(Reply),
     Save(Config, Reply),
     Pause(bool, Reply),
     TogglePause,
@@ -66,6 +71,7 @@ pub enum Message {
 
 pub struct Controller {
     tx: Sender<Message>,
+    published: Arc<Mutex<PublishedState>>,
 }
 
 impl Controller {
@@ -74,19 +80,32 @@ impl Controller {
         let control_tx = tx.clone();
         let action_tx = tx.clone();
         let (jobs, queue) = mpsc::sync_channel(ACTION_QUEUE_LIMIT);
+        let runtime = Runtime::new(app, path, legacy_path.as_deref(), control_tx, jobs);
+        let published = Arc::clone(&runtime.published);
         thread::spawn(move || run_actions(queue, action_tx));
-        thread::spawn(move || {
-            Runtime::new(app, path, legacy_path.as_deref(), control_tx, jobs).run(rx)
-        });
-        Self { tx }
+        thread::spawn(move || runtime.run(rx));
+        Self { tx, published }
     }
 
     pub fn sender(&self) -> Sender<Message> {
         self.tx.clone()
     }
 
-    pub fn request(&self, message: impl FnOnce(Reply) -> Message) -> Result<AppSnapshot, String> {
-        request(&self.tx, message)
+    pub fn snapshot(&self) -> AppSnapshot {
+        self.published.lock().unwrap().snapshot.clone()
+    }
+
+    pub async fn request(
+        &self,
+        message: impl FnOnce(Reply) -> Message,
+    ) -> Result<AppSnapshot, String> {
+        let (reply, result) = oneshot::channel();
+        let unavailable = || "Pedalsteuerung konnte die Anfrage nicht abschließen.".to_string();
+        self.tx.send(message(reply)).map_err(|_| unavailable())?;
+        tokio::time::timeout(Duration::from_secs(4), result)
+            .await
+            .map_err(|_| unavailable())?
+            .map_err(|_| unavailable())?
     }
 
     pub fn stop(&self) {
@@ -95,18 +114,6 @@ impl Controller {
             let _ = rx.recv_timeout(Duration::from_millis(750));
         }
     }
-}
-
-pub fn request(
-    tx: &Sender<Message>,
-    message: impl FnOnce(Reply) -> Message,
-) -> Result<AppSnapshot, String> {
-    let (reply, result) = mpsc::channel();
-    let unavailable = || "Pedalsteuerung konnte die Anfrage nicht abschließen.".to_string();
-    tx.send(message(reply)).map_err(|_| unavailable())?;
-    result
-        .recv_timeout(Duration::from_secs(4))
-        .map_err(|_| unavailable())?
 }
 
 struct Job {
@@ -171,6 +178,7 @@ struct Runtime {
     app: AppHandle,
     path: PathBuf,
     snapshot: AppSnapshot,
+    published: Arc<Mutex<PublishedState>>,
     gestures: Gestures,
     held: [Option<Action>; 3],
     hardware: Option<HardwareReader>,
@@ -195,24 +203,30 @@ impl Runtime {
             .active_profile(initial.manual_profile_id.as_deref(), None)
             .id
             .clone();
+        let snapshot = AppSnapshot {
+            config: initial.config,
+            connected: false,
+            connection_message: "Suche Philips-Pedal …".into(),
+            paused: initial.paused,
+            preview: false,
+            manual_profile_id: initial.manual_profile_id,
+            active_profile_id,
+            frontmost_app: None,
+            buttons: [false; 3],
+            raw_buttons: [false; 3],
+            input_revision: 0,
+            last_action: None,
+            startup_message: initial.message,
+        };
+        let published = Arc::new(Mutex::new(PublishedState {
+            snapshot: snapshot.clone(),
+            event_queued: false,
+        }));
         Self {
             app,
             path,
-            snapshot: AppSnapshot {
-                config: initial.config,
-                connected: false,
-                connection_message: "Suche Philips-Pedal …".into(),
-                paused: initial.paused,
-                preview: false,
-                manual_profile_id: initial.manual_profile_id,
-                active_profile_id,
-                frontmost_app: None,
-                buttons: [false; 3],
-                raw_buttons: [false; 3],
-                input_revision: 0,
-                last_action: None,
-                startup_message: initial.message,
-            },
+            snapshot,
+            published,
             gestures: Gestures::default(),
             held: Default::default(),
             hardware: None,
@@ -248,10 +262,6 @@ impl Runtime {
 
     fn handle(&mut self, message: Message) {
         let result = match message {
-            Message::State(reply) => {
-                let _ = reply.send(Ok(self.snapshot.clone()));
-                return;
-            }
             Message::Save(config, reply) => (reply, self.save(config)),
             Message::Pause(paused, reply) => (reply, self.set_paused(paused)),
             Message::TogglePause => {
@@ -314,7 +324,30 @@ impl Runtime {
     }
 
     fn emit(&self) {
-        let _ = self.app.emit("pedal-state", &self.snapshot);
+        let mut state = self.published.lock().unwrap();
+        state.snapshot = self.snapshot.clone();
+        if state.event_queued {
+            return;
+        }
+        state.event_queued = true;
+        drop(state);
+
+        let app = self.app.clone();
+        let published = Arc::clone(&self.published);
+        if self
+            .app
+            .run_on_main_thread(move || {
+                let snapshot = {
+                    let mut state = published.lock().unwrap();
+                    state.event_queued = false;
+                    state.snapshot.clone()
+                };
+                let _ = app.emit("pedal-state", snapshot);
+            })
+            .is_err()
+        {
+            self.published.lock().unwrap().event_queued = false;
+        }
     }
 
     fn save(&mut self, config: Config) -> Result<(), String> {

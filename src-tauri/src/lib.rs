@@ -17,8 +17,8 @@ use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, RunEvent, State, WebviewWindowBuilder};
 
 #[tauri::command]
-async fn get_state(controller: State<'_, Controller>) -> Result<AppSnapshot, String> {
-    controller.request(Message::State)
+fn get_state(controller: State<'_, Controller>) -> AppSnapshot {
+    controller.snapshot()
 }
 
 #[tauri::command]
@@ -26,7 +26,9 @@ async fn save_config(
     config: Config,
     controller: State<'_, Controller>,
 ) -> Result<AppSnapshot, String> {
-    controller.request(|reply| Message::Save(config, reply))
+    controller
+        .request(|reply| Message::Save(config, reply))
+        .await
 }
 
 #[tauri::command]
@@ -34,7 +36,9 @@ async fn set_paused(
     paused: bool,
     controller: State<'_, Controller>,
 ) -> Result<AppSnapshot, String> {
-    controller.request(|reply| Message::Pause(paused, reply))
+    controller
+        .request(|reply| Message::Pause(paused, reply))
+        .await
 }
 
 #[tauri::command]
@@ -42,7 +46,9 @@ async fn set_preview(
     preview: bool,
     controller: State<'_, Controller>,
 ) -> Result<AppSnapshot, String> {
-    controller.request(|reply| Message::Preview(preview, reply))
+    controller
+        .request(|reply| Message::Preview(preview, reply))
+        .await
 }
 
 #[tauri::command]
@@ -50,7 +56,9 @@ async fn set_manual_profile(
     profile_id: Option<String>,
     controller: State<'_, Controller>,
 ) -> Result<AppSnapshot, String> {
-    controller.request(|reply| Message::Pin(profile_id, reply))
+    controller
+        .request(|reply| Message::Pin(profile_id, reply))
+        .await
 }
 
 #[tauri::command]
@@ -58,7 +66,9 @@ async fn test_action(
     action: Action,
     controller: State<'_, Controller>,
 ) -> Result<AppSnapshot, String> {
-    controller.request(|reply| Message::Test(action, reply))
+    controller
+        .request(|reply| Message::Test(action, reply))
+        .await
 }
 
 #[tauri::command]
